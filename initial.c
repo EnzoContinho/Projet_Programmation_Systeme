@@ -27,6 +27,10 @@ int main(int argc, char *argv[]){
     key_t cle;
     int mem_part;
     /* fin init SMP */
+    /* init pour SEM*/
+    int semap,res_init;
+    unsigned short val_init[1]={1};
+    /* fin init pour sem*/
 
     if (argc < 3) {
         usage (argv[0]);
@@ -41,17 +45,6 @@ int main(int argc, char *argv[]){
       exit(-1);
     }
     else{
-
-
-      /* Création ensemble de sémaphores */
-      
-      
-
-
-
-
-      /* Fin création ensemble de sémaphores */
-
 
       
       /* Création SMP : */
@@ -97,7 +90,41 @@ int main(int argc, char *argv[]){
 
 
 
+      
 
+      
+      /* Création ensemble de sémaphores */
+
+      
+      /* On cree le semaphore (meme cle) */
+      semap = semget(cle,1,IPC_CREAT | IPC_EXCL | 0660);
+      if (semap==-1){
+	printf("Pb creation semaphore ou il existe deja\n");
+	/* Il faut detruire le SMP puisqu'on l'a cree : */
+	shmctl(mem_part,IPC_RMID,NULL);
+	/* Le detachement du SMP se fera a la terminaison */
+	exit(-1);
+      }
+
+      /* On l'initialise */
+      res_init = semctl(semap,1,SETALL,val_init);
+      if (res_init==-1){
+	printf("Pb initialisation semaphore\n");
+	/* On detruit les IPC deje crees : */
+	semctl(semap,1,IPC_RMID,NULL);
+	shmctl(mem_part,IPC_RMID,NULL);
+	exit(-1);
+      }
+
+      
+      /* FIN création ensemble de sémaphores */
+
+
+
+
+
+
+      
 
 
 
@@ -143,6 +170,11 @@ Il y a donc plus de demandes de consultation que de demande de modification des 
       
       printf("Compilation parfaite !");
       /* Fermer SMP ??????? */
+
+      /* On nettoie */
+      shmctl(mem_part,IPC_RMID,NULL);
+      semctl(semap,1,IPC_RMID,NULL);
+
       
       exit(0);
     }
