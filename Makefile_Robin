@@ -1,0 +1,13 @@
+CC = gcc
+
+
+all : archivistes journalistes
+
+archivistes : Archivistes.c Types.h
+	$(CC) -Wall Archivistes.c -o archivistes
+
+journalistes : Journalistes.c Types.h
+	$(CC) -Wall Journalistes.c -o journalistes
+
+clean :
+	rm -f archivistes journalistes cle.serv
