@@ -6,16 +6,7 @@
  *
  */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
-#include <errno.h>
-#include <sys/types.h>
-#include <sys/stat.h>       
-#include <dirent.h>         
-
-#define MAX_LGR_NOM 1024   /* Longueur maximale d'un nom de fichier absolu  */
+#include "types.h"
 
 /* Fonction d'usage pour une utilisation facilitée du programme */ 
 void usage(char *nom){
@@ -28,8 +19,14 @@ void usage(char *nom){
 
 /* Fonction principale */
 int main(int argc, char *argv[]){
- 
+  
     int nb_archivistes, nb_themes;
+    int crea_alea;
+    /* init pour SMP */
+    struct stat st;
+    key_t cle;
+    int mem_part;
+    /* fin init SMP */
 
     if (argc < 3) {
         usage (argv[0]);
@@ -38,26 +35,115 @@ int main(int argc, char *argv[]){
     nb_archivistes = atoi(argv[1]);
     nb_themes = atoi(argv[2]);
 
-    /* tester si le nb_archivistes et nb_themes sont bien compris entre 2 et 100 */
+    /* TEST si le nb_archivistes et nb_themes sont bien compris entre 2 et 100 */
     if(nb_archivistes < 2 || nb_archivistes > 100 || nb_themes < 2 || nb_themes > 100){
       printf("Le nombre d'archivistes et/ou de themes doit être compris entre 2 et 100...BYE !\n");
       exit(-1);
     }
     else{
-      
-      /* il doit créer et initialiser les IPC nécessaires à l'application (ensembles de sémaphores, segments de mémoire, file de message);
-il doit créer et lancer les archivistes;
-c'est lui qui crée les journalistes : indéfiniment, il crée un journaliste avec une requête. On a observé que, sur 10 demandes aux archives,
 
-    7 sont des demandes de consultation d'archives,
-    2 sont des demandes de publication d'articles,
-    1 est une demande d'effacement d'articles.
+
+      /* Création ensemble de sémaphores */
+      
+      
+
+
+
+
+      /* Fin création ensemble de sémaphores */
+
+
+      
+      /* Création SMP : */
+
+      /* Creation de la cle */
+      /* On teste si le fichier cle existe dans le repertoire courant */
+      /* Fabrication du fichier cle s'il n'existe pas */
+      if ((stat(FICHIER_CLE,&st) == -1) &&
+	  (open(FICHIER_CLE,O_RDONLY|O_CREAT|O_EXCL,0660) == -1)){
+	fprintf(stderr,"Pb creation fichier cle\n");
+	exit(-1);
+      }
+
+      cle = ftok(FICHIER_CLE,LETTRE_CODE);
+      if (cle==-1){
+	printf("Pb creation cle\n");
+	exit(-1);
+      }
+      
+      int *tab;
+      
+      /* On crée le SMP et on teste s'il existe déjà */
+      mem_part = shmget(cle,sizeof(int),IPC_CREAT | IPC_EXCL | 0660);
+      if (mem_part==-1){
+	printf("Pb creation SMP ou il existe deja\n");
+	exit(-1);
+      }
+    
+      /* Attachement de la memoire partagée */
+      tab = shmat(mem_part,NULL,0);
+      if (tab==(int *) -1){
+	printf("Problème d'attachement\n");
+	/* Nettoyage... */
+	shmctl(mem_part,IPC_RMID,NULL);
+	exit(-1);
+      }
+
+      tab[0]=0;
+      
+
+      /* FIN création SMP : */
+
+
+
+
+
+
+
+
+
+      /* Création FM */
+
+      
+
+      /* Fin création FM */
+
+
+
+      
+      /* Création du type de demande
+       * Génération d'un nb aléatoire entre 1 et 10
+       * Avec les statistiques données dans le sujet : 
+       * S'il est égal à 1, alors on va créer une demande d'effacement 
+       * S'il est compris entre 2 et 3 alors on va créer une demande de publication
+       * S'il est compris entre 4 et 10 alors va créer une demande de consultation
+       */
+      srand(time(NULL));
+      crea_alea = rand()%10+1;
+      printf("Nombre aléatoire : %d\n", crea_alea);
+
+      if(crea_alea == 1){
+	printf("Création d'un journaliste avec une demande d'effacement d'archive\n");
+      }
+      if(crea_alea < 4 && crea_alea > 1){
+	printf("Création d'un journaliste avec une demande de publication d'archive\n");
+      }
+      if(crea_alea < 11 && crea_alea > 3){
+	printf("Création d'un journaliste avec une demande de consultation d'archive\n");
+      }
+  
+      
+      
+      
+      /*
 
 Il y a donc plus de demandes de consultation que de demande de modification des archives : le processus initial doit tenir compte de ces statistiques lors de la création aléatoire des journalistes ainsi que des opérations qu'ils demandent aux archivistes;
 à la réception de tout signal (sauf bien sûr SIGKILL et SIGCHLD), il doit terminer les archivistes (ainsi que les journalistes encore en attente), puis supprimer les IPC avant de se terminer : ceci constitue l'unique façon d'arrêter l'application. */      
 
       
-      printf("Compilation parfaite !");   
+      printf("Compilation parfaite !");
+      /* Fermer SMP ??????? */
+      
       exit(0);
     }
 }
