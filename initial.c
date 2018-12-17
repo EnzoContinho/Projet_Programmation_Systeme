@@ -8,6 +8,9 @@
 
 #include "types.h"
 
+int file_mess; /* ID de la file, necessairement global
+		  pour pouvoir la supprimer a la terminaison */
+
 /* Fonction d'usage pour une utilisation facilitée du programme */ 
 void usage(char *nom){
     fprintf (stderr, "\nUsage: %s nb_archivistes nb_themes\n",nom);
@@ -22,10 +25,13 @@ int main(int argc, char *argv[]){
   
     int nb_archivistes, nb_themes;
     int crea_alea;
-    /* init pour SMP */
+    /* init pour fabrication de la clé */
     struct stat st;
     key_t cle;
+    /* fin pour fabrication de la clé */
+    /* init pour SMP */
     int mem_part;
+    int *tab;
     /* fin init SMP */
     /* init pour SEM*/
     int semap,res_init;
@@ -46,10 +52,10 @@ int main(int argc, char *argv[]){
     }
     else{
 
-      
-      /* Création SMP : */
+      /* ___________________________________________________________ */
 
-      /* Creation de la cle */
+      /* Création de la clé */
+      
       /* On teste si le fichier cle existe dans le repertoire courant */
       /* Fabrication du fichier cle s'il n'existe pas */
       if ((stat(FICHIER_CLE,&st) == -1) &&
@@ -63,8 +69,12 @@ int main(int argc, char *argv[]){
 	printf("Pb creation cle\n");
 	exit(-1);
       }
+
+      /* FIN création de la clé */
       
-      int *tab;
+      /* ___________________________________________________________ */
+      
+      /* Création SMP : */
       
       /* On crée le SMP et on teste s'il existe déjà */
       mem_part = shmget(cle,sizeof(int),IPC_CREAT | IPC_EXCL | 0660);
@@ -86,12 +96,8 @@ int main(int argc, char *argv[]){
       
 
       /* FIN création SMP : */
-
-
-
-
       
-
+      /* ___________________________________________________________ */
       
       /* Création ensemble de sémaphores */
 
@@ -110,7 +116,7 @@ int main(int argc, char *argv[]){
       res_init = semctl(semap,1,SETALL,val_init);
       if (res_init==-1){
 	printf("Pb initialisation semaphore\n");
-	/* On detruit les IPC deje crees : */
+	/* On detruit les IPC deja créées : */
 	semctl(semap,1,IPC_RMID,NULL);
 	shmctl(mem_part,IPC_RMID,NULL);
 	exit(-1);
@@ -119,24 +125,19 @@ int main(int argc, char *argv[]){
       
       /* FIN création ensemble de sémaphores */
 
-
-
-
-
-
-      
-
-
-
+      /* ___________________________________________________________ */
 
       /* Création FM */
 
-      
+      file_mess = msgget(cle,IPC_CREAT | IPC_EXCL | 0660);
+      if (file_mess==-1){
+	fprintf(stderr,"Pb creation file de message\n");
+	exit(-1);
+      }
 
       /* Fin création FM */
 
-
-
+      /* ___________________________________________________________ */
       
       /* Création du type de demande
        * Génération d'un nb aléatoire entre 1 et 10
@@ -145,6 +146,7 @@ int main(int argc, char *argv[]){
        * S'il est compris entre 2 et 3 alors on va créer une demande de publication
        * S'il est compris entre 4 et 10 alors va créer une demande de consultation
        */
+      
       srand(time(NULL));
       crea_alea = rand()%10+1;
       printf("Nombre aléatoire : %d\n", crea_alea);
@@ -159,14 +161,19 @@ int main(int argc, char *argv[]){
 	printf("Création d'un journaliste avec une demande de consultation d'archive\n");
       }
   
+      /* ___________________________________________________________ */
       
       
       
       /*
+	Il y a donc plus de demandes de consultation que de demande de modification des archives : 
+	le processus initial doit tenir compte de ces statistiques lors de la création aléatoire des journalistes ainsi que des opérations qu'ils demandent aux archivistes;
 
-Il y a donc plus de demandes de consultation que de demande de modification des archives : le processus initial doit tenir compte de ces statistiques lors de la création aléatoire des journalistes ainsi que des opérations qu'ils demandent aux archivistes;
-à la réception de tout signal (sauf bien sûr SIGKILL et SIGCHLD), il doit terminer les archivistes (ainsi que les journalistes encore en attente), puis supprimer les IPC avant de se terminer : ceci constitue l'unique façon d'arrêter l'application. */      
+	à la réception de tout signal (sauf bien sûr SIGKILL et SIGCHLD), il doit terminer les archivistes (ainsi que les journalistes encore en attente), 
+	puis supprimer les IPC avant de se terminer : ceci constitue l'unique façon d'arrêter l'application.
+      */      
 
+   
       
       printf("Compilation parfaite !");
       /* Fermer SMP ??????? */
