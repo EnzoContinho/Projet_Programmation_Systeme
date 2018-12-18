@@ -75,14 +75,18 @@ int main (int argc, char *argv[]){
     fich_cle = fopen(FICHIER_CLE,"r");
     if (fich_cle==NULL)
     {
+	couleur(ROUGE);
 	fprintf(stderr,"Lancement client impossible\n");
+        couleur(REINIT);
 	exit(-1);
     }
     
     cle = ftok(FICHIER_CLE,LETTRE_CODE);
     if (cle==-1)
     {
+	couleur(ROUGE);
 	fprintf(stderr,"Pb creation cle\n");
+	couleur(REINIT);
 	exit(-1);
     }
    
@@ -92,7 +96,9 @@ int main (int argc, char *argv[]){
     semap = semget(cle,1,0);
     if (semap==-1)
 	{
+	    couleur(ROUGE);
 	    printf("(%d) Pb recuperation semaphore\n",num_archiv);
+	    couleur(REINIT);
 	    exit(-1);
 	}
     
@@ -101,7 +107,9 @@ int main (int argc, char *argv[]){
     
     if (file_mess==-1)
 	{
+	    couleur(ROUGE);
 	    printf("(%d) Pb creation FM ou il existe deja\n", num_archiv);
+	    couleur(REINIT);
 	    exit(-1);
 	}
 
@@ -114,14 +122,18 @@ int main (int argc, char *argv[]){
 
 	      if(mem_part==-1)
 		  {
+		      couleur(ROUGE);
 		      fprintf(stderr,"(%d) Pb recuperation SMP\n",num_archiv);
+		      couleur(REINIT);
 		  }
 	      
 	      /* Attachement SMP :      */
 	      tab_theme = shmat(mem_part,NULL,0);
 	      if (tab_theme==NULL)
 		  {
+		      couleur(ROUGE);
 		      printf("(%d) Pb attachement SMP\n",num_archiv);
+		      couleur(REINIT);
 		      exit(-1);
 		  }
 	}
@@ -135,7 +147,9 @@ int main (int argc, char *argv[]){
 	/*Recuperation de la requete*/
 	if  ((nb_lus=msgrcv(file_mess,&requete,sizeof(requete_t),num_archiv,0))==-1)
 	    {
+		couleur(ROUGE);
 		fprintf(stderr,"Erreur de lecture, erreur %d\n",errno);
+		couleur(REINIT);
 		raise(SIGUSR1);
 	    }
       
@@ -235,12 +249,12 @@ int main (int argc, char *argv[]){
 	    sprintf(reponse.resu,"La publication de l'article n°%d dans le theme n°%d a bien été suprimé !\n",requete.num_article,requete.theme);
         }
         couleur(REINIT);
-
+	couleur(BLEU);
         fprintf(stdout, "Je fais le travail demandé ...\n");
 	/* Attente aleatoire */
 	sleep(rand()%3);
         fprintf(stdout,"Travail effectué !\n");
-	
+	couleur(REINIT);
         /* envoi de la reponse :                           */
 	reponse.type=requete.journaliste;
         msgsnd(file_mess,&reponse,sizeof(reponse_t),0);
