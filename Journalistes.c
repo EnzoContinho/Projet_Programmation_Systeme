@@ -108,7 +108,9 @@ int main (int argc, char *argv[]){
     /* Creation de la cle de la file de message:          */
     cle = ftok(FICHIER_CLE,LETTRE_CODE);
     if (cle==-1){
-	fprintf(stderr,"Pb creation cle\n");
+	couleur(ROUGE);
+	fprintf(stdout,"Pb creation cle\n");
+	couleur(REINIT);
 	exit(-1);
     }
 
@@ -154,7 +156,9 @@ int main (int argc, char *argv[]){
     res_rcv = msgrcv(file_mess,&reponse,sizeof(reponse_t),requete.journaliste,0);
     tab_archiviste_court[sauv_i]--;
     if (res_rcv ==-1){
-	fprintf(stderr,"Erreur, numero %d\n",errno);
+	couleur(ROUGE);
+	fprintf(stdout,"Erreur, numero %d\n",errno);
+	couleur(REINIT);
 	exit(-1);
     }
 
