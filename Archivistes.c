@@ -11,17 +11,16 @@
 #include <sys/ipc.h>
 #include <sys/msg.h>
 #include <signal.h>
-/*Pour strcpy*/
 #include <string.h>
 /*Pour les differentes structures*/
-#include "Types.h"
+#include "types.h"
 
 int file_mess; /* ID de la file, necessairement global
 		  pour pouvoir la supprimer a la terminaison */
 
 void arret(int s){
     couleur(ROUGE);
-    fprintf(stdout,"archiviste s'arrete (sigusr1 recu)\n");
+    fprintf(stdout,"archiviste s'arrete\n");
     couleur(REINIT);
     msgctl(file_mess,IPC_RMID,NULL);
     exit(0);
@@ -34,6 +33,9 @@ void usage(char *s){
     exit(-1);
 }
 
+
+
+
 int main (int argc, char *argv[]){
     key_t cle;     /* cle de la file     */
     FILE *fich_cle;
@@ -41,18 +43,19 @@ int main (int argc, char *argv[]){
     reponse_t reponse;
     int mem_part; /* ID du SMP    */
     int semap;    /* ID du semaphore    */
-    char** tab;     /* l'entier de la SMP */
     int nb_lus;
     int num_archiv,nb_theme; /*numero d'archiviste & nombre de thème*/
-    pid_t pid;
-    int theme;
+    /*
+    char nom[7];
+    */
     /*Exclusion mutuelle*/
+    theme_t* tab_theme; /*Tableau de thème*/
+    /*
     struct sembuf P = {0,-1,SEM_UNDO};
     struct sembuf V = {0,1,SEM_UNDO};
-    /*booléen de type int qui renvoie 1 s'il y a de la place, 0 sinon*/
-    int place = 0;
-    /*pour la boucle*/
-    int i;
+    */
+    int i;  /*pour la boucle*/
+    char article[5]; /*pour la recuperation de l'article*/
     
 
 /* Recuperation des arguments                   */
@@ -62,149 +65,185 @@ int main (int argc, char *argv[]){
         exit(-1);
     }
     
-    pid=getpid();
     num_archiv=atoi(argv[0]);
     nb_theme=atoi(argv[1]);
-    /*Verification du nombre d'Archivistes*/
+    /*Verification du numero d'Archivistes*/
     if(num_archiv<1 || num_archiv>NB_ARCHIVISTES_MAX)
     {
         usage(argv[0]);
         exit(-1);
     }
+
+    /*
+    theme=requete.theme;
     
+    sprintf(nom, "%d.serv", theme);
+    */
     
-   
     /* 1 - On teste si le fichier cle existe dans le repertoire courant : */
-    fich_cle = fopen(FICHIER_CLE_FILE,"r");
+    fich_cle = fopen(FICHIER_CLE,"r");
     if (fich_cle==NULL)
     {
 	fprintf(stderr,"Lancement client impossible\n");
 	exit(-1);
     }
     
-    cle = ftok(FICHIER_CLE_FILE,LETTRE_CODE);
+    cle = ftok(FICHIER_CLE,LETTRE_CODE);
     if (cle==-1)
     {
 	fprintf(stderr,"Pb creation cle\n");
 	exit(-1);
     }
-
-/*Recuperation des differentes clés lié au theme*/ 
    
     /* On recupere les IPC           */
-    
-    /* Recuperation SMP :            */
-    mem_part=shmget(cle, sizeof(int), 0);
-
-    if(mem_part==-1)
-    {
-        fprintf(stderr,"(%d) Pb recuperation SMP\n",pid);
-    }
-
-
-    /* Attachement SMP :      */
-    tab = shmat(mem_part,NULL,0);
-    if (tab==(char **)-1)
-    {
-	printf("(%d) Pb attachement SMP\n",pid);
-	exit(-1);
-    }
 
     /* Recuperation semaphore :         */
     semap = semget(cle,1,0);
     if (semap==-1)
-    {
-	printf("(%d) Pb recuperation semaphore\n",pid);
-	exit(-1);
-    }
+	{
+	    printf("(%d) Pb recuperation semaphore\n",num_archiv);
+	    exit(-1);
+	}
     
     /* Recuperation file de message :               */
     file_mess=msgget(cle,0);
     
     if (file_mess==-1)
-    {
-	printf("Pb creation FM ou il existe deja\n");
-	exit(-1);
-    }
+	{
+	    printf("(%d) Pb creation FM ou il existe deja\n", num_archiv);
+	    exit(-1);
+	}
 
+    for(i=0;i<nb_theme;i++)
+	{
+	      cle = ftok(FICHIER_CLE,LETTRE_CODE+i);
+
+	      /* Recuperation SMP :            */
+	      mem_part=shmget(cle, sizeof(int), 0);
+
+	      if(mem_part==-1)
+		  {
+		      fprintf(stderr,"(%d) Pb recuperation SMP\n",num_archiv);
+		  }
+	      
+	      /* Attachement SMP :      */
+	      tab_theme = shmat(mem_part,NULL,0);
+	      if (tab_theme==NULL)
+		  {
+		      printf("(%d) Pb attachement SMP\n",num_archiv);
+		      exit(-1);
+		  }
+	}
+    
+
+    /*
     mon_sigaction(SIGUSR1,arret);
     mon_sigaction(SIGUSR2,arret);
+    */
     for(;;) /* Indefiniment :*/
-        /* archiviste attend des requetes, de type (1 pour la consultation, 2 pour la publication) :        */
+        /* archiviste attend des requetes      */
     {
-        if  ((nb_lus=msgrcv(file_mess,&requete,sizeof(requete_t),1,0))==-1
-             || (nb_lus=msgrcv(file_mess,&requete,sizeof(requete_t),2,0))==-1)
-        {
-	    fprintf(stderr,"Erreur de lecture, erreur %d\n",errno);
-	    raise(SIGUSR1);
-	}
-        
+	/*Recuperation de la requete*/
+	if  ((nb_lus=msgrcv(file_mess,&requete,sizeof(requete_t),num_archiv,0))==-1)
+	    {
+		fprintf(stderr,"Erreur de lecture, erreur %d\n",errno);
+		raise(SIGUSR1);
+	    }
+      
 	/* traitement de la requete :                      */
-        couleur(ROUGE);
+        couleur(BLEU);
         /*CONSULTATION*/
-        if(requete.type==1)
-        {
-           
-            fprintf(stdout,"(Archiviste) Requete recue de %d\n\top Consultation du thème numéro : %d de l'article numero : %d \n",
+        if(requete.mode==0)
+        {           
+            fprintf(stdout,"(Archiviste) Requete recue de %d\n\tConsultation du thème numéro : %d de l'article numero : %d \n",
                     requete.journaliste,
                     requete.theme,
                     requete.num_article);
-            
+	    /*Recherche*/
+	    for(i=0;i<4;i++)
+		{
+		    article[i]=tab_theme[requete.theme].articles[(4*requete.num_article)+i];
+		}
+	    article[4]='\0';
+	    
             /*Type de reponse judicieusement choisi*/
-            reponse.type=1;
+            reponse.mode=0;
             reponse.archiviste=num_archiv;
-            reponse.resu="La consultation a bien été faite !\n";
+	    sprintf(reponse.resu,"La consultation a bien été faite ! L'article n°%d du thème n°%d est : %s",requete.num_article,requete.theme,article);
 
         }
         /*PUBLICATION*/
         /*AJOUT*/
-        else if(requete.type==2 && requete.mode==1)
+        else if(requete.mode==1)
         {
                      
-            fprintf(stdout,"(Archiviste) Requete recue de %d\n\top Ajout dans le thème numéro : %d et du texte : %s \n",
+            fprintf(stdout,"(Archiviste) Requete recue de %d\n\tAjout dans le thème numéro : %d et du texte : %s \n",
                     requete.journaliste,
                     requete.theme,
                     requete.texte);
-
+	    /*A MODIFIER*/
+	    /*
             semop(semap,&P,1);
-            while(place==0)
-            {
-                if(tab[i]==NULL)
-                {
-                    place = 1;
-                }
-                else
-                {
-                    i++;
-                }
-            }
-            strcpy(tab[i],requete.texte);
+	    */
+
+	    /*Ajout*/
+	    i=0;
+	    while(i<400)
+		{
+		    if(tab_theme[requete.theme].articles[i]!='\0')
+			{
+			    break;
+			}
+		    else
+			{
+			    i++;
+			}
+		}
+	    
+	    tab_theme[requete.theme].articles[i]=requete.texte[1];
+	    tab_theme[requete.theme].articles[i+1]=requete.texte[2];
+	    tab_theme[requete.theme].articles[i+2]=requete.texte[3];
+	    tab_theme[requete.theme].articles[i+3]=requete.texte[4];
+	
+	    
+	    /*
             semop(semap,&V,1);
-            
+            */
+	    
             /*Type de reponse judicieusement choisi*/
-            reponse.type=2;
+            reponse.mode=1; 
             reponse.archiviste=num_archiv;
-            reponse.resu="La publication a bien été ajouté !\n";
+	    sprintf(reponse.resu,"La publication du texte %s dans le theme n°%d a bien été ajouté !\n",requete.texte,requete.theme);
         }
         /*SUPPRESION*/
-        else if(requete.type==2 && requete.mode==2)
+        else if(requete.mode==2)
         {
             
-            fprintf(stdout,"(Archiviste) Requete recue de %d\n\top Suppression dans le thème numéro : %d et précisement de l'article : %d\n",
+            fprintf(stdout,"(Archiviste) Requete recue de %d\n\tSuppression dans le thème numéro : %d et précisement de l'article : %d\n",
                     requete.journaliste,
                     requete.theme,
                     requete.num_article);
 
+	    /*
             semop(semap,&P,1);
-
-            tab[requete.num_article]=NULL;           
-            
+	    */
+	    
+	    /*Supression*/
+	     i=requete.num_article+4;
+	    while(i<400 && tab_theme[requete.theme].articles[i]!='\0')
+		{
+		    tab_theme[requete.theme].articles[i-4]=tab_theme[requete.theme].articles[i];
+		    i++;
+		}
+	    
+            /*
             semop(semap,&V,1);
-
+	    */
+	    
             /*Type de reponse judicieusement choisi*/
-            reponse.type=2;
+            reponse.mode=2;
             reponse.archiviste=num_archiv;
-            reponse.resu="La publication a bien été supprimé !\n";
+	    sprintf(reponse.resu,"La publication de l'article n°%d dans le theme n°%d a bien été suprimé !\n",requete.num_article,requete.theme);
         }
         couleur(REINIT);
 
@@ -214,11 +253,15 @@ int main (int argc, char *argv[]){
         fprintf(stdout,"Travail effectué !\n");
 	
         /* envoi de la reponse :                           */
+	reponse.type=requete.journaliste;
         msgsnd(file_mess,&reponse,sizeof(reponse_t),0);
     }
 
     /*pour gcc*/
     exit(0);
 }
+
+
+
 
 
