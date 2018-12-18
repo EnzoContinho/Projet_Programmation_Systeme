@@ -22,7 +22,6 @@ void arret(int s){
     couleur(ROUGE);
     fprintf(stdout,"archiviste s'arrete\n");
     couleur(REINIT);
-    msgctl(file_mess,IPC_RMID,NULL);
     exit(0);
 }
 
@@ -45,9 +44,6 @@ int main (int argc, char *argv[]){
     int semap;    /* ID du semaphore    */
     int nb_lus;
     int num_archiv,nb_theme; /*numero d'archiviste & nombre de thème*/
-    /*
-    char nom[7];
-    */
     /*Exclusion mutuelle*/
     theme_t* tab_theme; /*Tableau de thème*/
     /*
@@ -74,11 +70,6 @@ int main (int argc, char *argv[]){
         exit(-1);
     }
 
-    /*
-    theme=requete.theme;
-    
-    sprintf(nom, "%d.serv", theme);
-    */
     
     /* 1 - On teste si le fichier cle existe dans le repertoire courant : */
     fich_cle = fopen(FICHIER_CLE,"r");
@@ -136,10 +127,8 @@ int main (int argc, char *argv[]){
 	}
     
 
-    /*
     mon_sigaction(SIGUSR1,arret);
     mon_sigaction(SIGUSR2,arret);
-    */
     for(;;) /* Indefiniment :*/
         /* archiviste attend des requetes      */
     {
