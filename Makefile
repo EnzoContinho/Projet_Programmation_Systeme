@@ -2,18 +2,18 @@ cc = gcc
 opt = -Wall
 
 
-all : clean initial archivistes journalistes
+all : clean initial Archivistes Journalistes
 
 initial: initial.c types.h
 	$(cc) $(opt) initial.c -o initial
 
-archivistes : Archivistes.c types.h
-	$(CC) $(opt) Archivistes.c -o archivistes
+Archivistes : Archivistes.c types.h
+	$(CC) $(opt) Archivistes.c -o Archivistes
 
-journalistes : Journalistes.c types.h
-	$(CC) $(opt) Journalistes.c -o journalistes
+Journalistes : Journalistes.c types.h
+	$(CC) $(opt) Journalistes.c -o Journalistes
 
 clean :
-	rm -f initial archivistes journalistes
+	rm -f initial Archivistes Journalistes
 	rm -f fichier_serv
 	sh ./script.sh
