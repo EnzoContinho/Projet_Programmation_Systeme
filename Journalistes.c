@@ -12,7 +12,7 @@
 #include <sys/msg.h>
 #include <signal.h>
 
-#include "Types.h"
+#include "types.h"
 
 void usage(char *s){
     couleur(ROUGE);
@@ -36,25 +36,22 @@ int num_journaliste_correct(int num)
 
 int main (int argc, char *argv[]){
     key_t cle; /* cle de la file     */
-    FILE *fich_cle;
     int file_mess; /* ID de la file */
-    int mem_part; /* ID du SMP    */
-    int semap;    /* ID du semaphore    */
     requete_t requete;
     reponse_t reponse;
     int id_journaliste; /*ID du journaliste*/
     int nb_archivistes; /*nombre d'archivistes*/
-    char action;        /*Action à effectuer*/
-    int type;           /*Pour la requete*/
+    char action;        /*Action Ã  effectuer*/
     int mode;           /*Traduit l'action en int pour la requete*/
     int theme;          /*numero du theme*/
     int num_article;    /*numero de l'article*/ 
-    char* texte;        /*texte à inserer*/
+    char* texte;        /*texte Ã  inserer*/
     int res_rcv;
     char* type_reponse;
-    pid_t pid;
     int i;
-    char** tab;
+    int * tab_archiviste_court;
+    int id_nb_message;
+    int sauv_i;
     
 
     /* Recuperation des arguments */
@@ -63,7 +60,6 @@ int main (int argc, char *argv[]){
         usage(argv[0]);
         exit(-1);
     }
-    pid=getpid();
     id_journaliste=atoi(argv[1]);
     nb_archivistes=atoi(argv[2]);
     action=argv[3][1];
@@ -84,8 +80,7 @@ int main (int argc, char *argv[]){
     /*Cas d'une consultation*/
     case 'c':
     case 'C':
-        /*le type 1 veut maintenant dire que c'est une consultation*/
-        type=1;
+        /*le mode 0 veut maintenant dire que c'est une consultation*/
         mode=0;
         theme=atoi(argv[4]);
         num_article=atoi(argv[5]);
@@ -93,8 +88,6 @@ int main (int argc, char *argv[]){
     /*Cas d'une publication*/
     case 'p':
     case 'P':
-        /*le type 2 veut maintenant dire que c'est une publication*/
-        type=2;
         /*le mode 1 veut maintenant dire que c'est un ajout*/
         mode=1;
         theme=atoi(argv[4]);
@@ -103,8 +96,6 @@ int main (int argc, char *argv[]){
     /*Cas d'un effacement*/
     case 'e':
     case 'E':
-        /*le type 2 veut maintenant dire que c'est une publication*/
-        type=2;
         /*le mode 2 veut maintenant dire que c'est une suppression*/
         mode=2;
         theme=atoi(argv[4]);
@@ -114,24 +105,7 @@ int main (int argc, char *argv[]){
     }
     
 
-    /* Creation de la cle :          */
-    /* 1 - On teste si le fichier cle existe dans le repertoire courant : */
-    fich_cle = fopen(FICHIER_CLE,"r");
-    if (fich_cle==NULL){
-	if (errno==ENOENT){
-	    /* on le cree */
-	    fich_cle=fopen(FICHIER_CLE,"w");
-	    if (fich_cle==NULL){
-		fprintf(stderr,"Lancement journaliste impossible\n");
-		exit(-1);
-	    }
-	}
-        else {
-	    fprintf(stderr,"Lancement journaliste impossible\n");
-	    exit(-1);
-	}
-    }
-
+    /* Creation de la cle de la file de message:          */
     cle = ftok(FICHIER_CLE,LETTRE_CODE);
     if (cle==-1){
 	fprintf(stderr,"Pb creation cle\n");
@@ -139,86 +113,69 @@ int main (int argc, char *argv[]){
     }
 
     /* On recupere les IPC           */
-    
-    /* Recuperation SMP :            */
-    mem_part=shmget(cle, sizeof(int), 0);
 
-    if(mem_part==-1)
-    {
-        fprintf(stderr,"(%d) Pb recuperation SMP\n",pid);
-    }
-
-    
-    /* Creation file de message :    */
-    file_mess = msgget(cle,IPC_CREAT | IPC_EXCL | 0660);
-    if (file_mess==-1){
-	fprintf(stderr,"Pb creation file de message\n");
-	exit(-1);
-    }
-
-    /* Attachement SMP :      */
-    tab = shmat(mem_part,NULL,0);
-    if (tab==(char **)-1)
-    {
-	printf("(%d) Pb attachement SMP\n",pid);
-	exit(-1);
-    }
-
-    /* Recuperation semaphore :         */
-    semap = semget(cle,1,0);
-    if (semap==-1)
-    {
-	printf("(%d) Pb recuperation semaphore\n",pid);
-	exit(-1);
-    }
-    
     /* Recuperation file de message :               */
     file_mess=msgget(cle,0);
 
+    /* Recuperation du SMP */
+    id_nb_message=shmget(cle,0,0);
 
+    tab_archiviste_court=shmat(id_nb_message,NULL,0);
+
+    /*Test du meilleur archivistes*/
+    sauv_i=0;
+    for(i=0;i<nb_archivistes;i++)
+    {
+        /*Recuperation de l'archiviste dont la file d'attente est la plus courte*/
+	if(tab_archiviste_court[i]==0)
+	    {
+		sauv_i=i;
+		break;
+	    }
+	if(tab_archiviste_court[sauv_i]>tab_archiviste_court[i])
+	    {
+		sauv_i=i;
+	    }
+    }
+    
      /* creation de la requete :                      */
-    requete.type = type;
+    requete.type = sauv_i;
     requete.journaliste=id_journaliste;
     requete.mode=mode;
     requete.theme=theme;
     requete.num_article=num_article;
     requete.texte=texte;
 
-    /*Test du meilleur archivistes*/
-    for(i=0;i<nb_archivistes;i++)
-    {
-        /*Recuperation de l'archiviste dont la file d'attente est la plus courte*/
-        /*TODO*/
-    }
-    
+    tab_archiviste_court[sauv_i]++;
     /* envoi de la requete :                            */
     msgsnd(file_mess,&requete,sizeof(requete_t),0);
 
     /* attente de la reponse :                        */
-    res_rcv = msgrcv(file_mess,&reponse,sizeof(reponse_t),type,0);
+    res_rcv = msgrcv(file_mess,&reponse,sizeof(reponse_t),requete.journaliste,0);
+    tab_archiviste_court[sauv_i]--;
     if (res_rcv ==-1){
 	fprintf(stderr,"Erreur, numero %d\n",errno);
 	exit(-1);
     }
 
-    if(type==1)
+    if(mode==0)
     {
-        type_reponse="- Une consultation à une publication";
+        type_reponse="- Une consultation Ã  une publication";
     }
-    else if(type==2 && mode==1)
+    else if(mode==1)
     {
         type_reponse="- Ajout d'une publication";
     }
-    else if(type==2 && mode == 2)
+    else if(mode == 2)
     {
         type_reponse="- Supression d'une publication";
     }
     
     couleur(BLEU);
     /*Affichage de la requete*/
-    fprintf(stdout,"Le journaliste %d envoie comme requete : %s de thème numéro  %d à l'article numéro %d\n", id_journaliste,type_reponse,theme, num_article);
+    fprintf(stdout,"Le journaliste %d envoie comme requete : %s de thÃ¨me numÃ©ro  %d Ã  l'article numÃ©ro %d\n", id_journaliste,type_reponse,theme, num_article);
     /*Affichage de la reponse*/
-    fprintf(stdout, "\t\tLe journaliste %d recoit comme réponse : %s\n", id_journaliste, reponse.resu);
+    fprintf(stdout, "\t\tLe journaliste %d recoit comme rÃ©ponse : %s\n", id_journaliste, reponse.resu);
     couleur(REINIT);
 
     
@@ -227,5 +184,6 @@ int main (int argc, char *argv[]){
     /* pour gcc */
     exit(0);
 }
+
 
 
