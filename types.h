@@ -15,8 +15,7 @@
 #include <signal.h>
 
 #define MAX_LGR_NOM 1024   /* Longueur maximale d'un nom de fichier absolu  */
-#define FICHIER_CLE "fichier_SMP"
-#define FICHIER_CLE_FILE "cle.file"
+#define FICHIER_CLE "fichier_serv"
 #define LETTRE_CODE 'a'
 #define NB_THEME_MIN 2
 #define NB_ARCHIVISTES_MIN 2
@@ -26,11 +25,11 @@
 
 typedef struct
 {
-    long type;       /*Type 1 => consultation ; 
-                       Type 2 => publication*/
-    int journaliste; /*Id du journaliste entre 10 000 & 20 000*/
-    int mode;        /*Seulement pour le type 2 (si mode=1 => ajout)
-                                       sinon mode=2 => suppression)*/
+    long type;       
+    int journaliste; /*ID du journaliste entre 10 000 & 20 000*/
+    int mode;        /* si mode=0 => consultation
+                        si mode=1 => ajout
+                        sinon mode=2 => suppression*/
     int theme;       /*numéro du thème de l'article*/
     int num_article; /*numéro de l'article; 
                        Dans le cas d'un consultation 
@@ -42,10 +41,21 @@ requete_t;
 typedef struct
 {
     long type;
-    int archiviste; /*Id de l'archiviste*/
+    int archiviste; /*ID de l'archiviste*/
+    int mode;        /* si mode=0 => consultation
+                        si mode=1 => ajout
+                        sinon mode=2 => suppression*/
     char* resu;
 } 
 reponse_t;
+
+typedef struct
+{
+    int nb_lecteurs;
+    int nb_ecrivains;
+    char articles[4*NB_THEME_MAX] ;
+}
+theme_t;
 
 /* Couleurs dans xterm                                     */
 #define couleur(param) printf("\033[%sm",param)
