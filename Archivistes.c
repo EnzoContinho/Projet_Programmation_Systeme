@@ -76,7 +76,7 @@ int main (int argc, char *argv[]){
     if (fich_cle==NULL)
     {
 	couleur(ROUGE);
-	fprintf(stderr,"Lancement client impossible\n");
+	fprintf(stdout,"Lancement client impossible\n");
         couleur(REINIT);
 	exit(-1);
     }
@@ -85,7 +85,7 @@ int main (int argc, char *argv[]){
     if (cle==-1)
     {
 	couleur(ROUGE);
-	fprintf(stderr,"Pb creation cle\n");
+	fprintf(stdout,"Pb creation cle\n");
 	couleur(REINIT);
 	exit(-1);
     }
@@ -123,7 +123,7 @@ int main (int argc, char *argv[]){
 	      if(mem_part==-1)
 		  {
 		      couleur(ROUGE);
-		      fprintf(stderr,"(%d) Pb recuperation SMP\n",num_archiv);
+		      fprintf(stdout,"(%d) Pb recuperation SMP\n",num_archiv);
 		      couleur(REINIT);
 		  }
 	      
@@ -148,7 +148,7 @@ int main (int argc, char *argv[]){
 	if  ((nb_lus=msgrcv(file_mess,&requete,sizeof(requete_t),num_archiv,0))==-1)
 	    {
 		couleur(ROUGE);
-		fprintf(stderr,"Erreur de lecture, erreur %d\n",errno);
+		fprintf(stdout,"Erreur de lecture, erreur %d\n",errno);
 		couleur(REINIT);
 		raise(SIGUSR1);
 	    }
