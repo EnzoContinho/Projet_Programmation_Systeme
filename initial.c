@@ -17,9 +17,7 @@ int nb_themes; /* nb_themes, necessairement global pour pouvoir la supprimer a l
 void handler(int j){
   key_t cle;
   int tmp;
-  couleur(ROUGE);
   printf("Effacement des IPC... \n");
-  couleur(REINIT);
   /* Nettoyage des SMP */
   for(int i=0;i<nb_themes;i++){
        
@@ -37,7 +35,7 @@ void handler(int j){
   cle = ftok(FICHIER_CLE,LETTRE_CODE);
   if (cle==-1){
     couleur(ROUGE);
-    printf("Pb creation cle");
+    perror("Pb creation cle");
     couleur(REINIT);
     exit(-1);
   }
@@ -106,6 +104,7 @@ int main(int argc, char *argv[], char **envp){
   int nb_journalistes=10000; // On fixe a 10000 le nb de journalistes
   char* argv_stru[6];
   char tmp1[50];
+  int SMP_FILE;
   
   /* TEST si il manque des arguments, ajouts éventuels*/
   switch (argc) {   
@@ -153,7 +152,7 @@ int main(int argc, char *argv[], char **envp){
       cle = ftok(FICHIER_CLE,LETTRE_CODE+i);
       if (cle==-1){
 	couleur(ROUGE);
-	printf("Problème création clé");
+	perror("Problème création clé");
 	couleur(REINIT);
 	//supprimer les précédents
 	for(j=0;j<i;j++){
@@ -195,6 +194,46 @@ int main(int argc, char *argv[], char **envp){
 	
     }
     /* FIN créationS SMP (fin boucle for) */
+
+
+    
+    /* Création AUTRE SMP pour le nombre de messages dans la file de chaque archivistes */
+    
+    cle = ftok(FICHIER_CLE,LETTRE_CODE-1);
+    if (cle==-1){
+      couleur(ROUGE);
+      perror("Problème création clé");
+      couleur(REINIT);
+      exit(-1);
+    }
+
+    /* Création SMP */
+    /* On crée le SMP et on teste s'il existe déjà */
+    SMP_FILE = shmget(cle,nb_archivistes*sizeof(int),IPC_CREAT | IPC_EXCL | 0660);
+
+    if (SMP_FILE==-1){
+      couleur(ROUGE);
+      printf("Pb creation SMP ou il existe déjà\n");
+      couleur(REINIT);
+      handler(0);
+      exit(-1);
+    }
+      
+    /* Attachement SMP */
+    int *attache;
+    attache = shmat(SMP_FILE,NULL,0);
+    if (attache==NULL){
+      couleur(ROUGE);
+      printf("Pb attachement SMP\n");
+      couleur(REINIT);
+      exit(-1);
+    }
+
+    for(i=0;i<nb_archivistes;i++){
+      attache[i]=0;
+    }
+    
+    /* FIN AUTRE SMP */
     
     /* Création ensemble de sémaphores */
     
@@ -221,7 +260,7 @@ int main(int argc, char *argv[], char **envp){
     resultat = semctl(stock_SEM,1,SETALL,test);
     if (resultat==-1){
       couleur(ROUGE);
-      fprintf(stdout,"Pb initialisation sémaphore");
+      perror("Pb initialisation sémaphore");
       couleur(REINIT);
       /* On detruit les IPC déjà créées : */
       semctl(stock_SEM,1,IPC_RMID,NULL);
@@ -241,7 +280,7 @@ int main(int argc, char *argv[], char **envp){
     cle = ftok(FICHIER_CLE,LETTRE_CODE);
     if (cle==-1){
       couleur(ROUGE);
-      fprintf(stdout,"Pb creation cle");
+      perror("Pb creation cle");
       couleur(REINIT);
       exit(-1);
     }
@@ -249,7 +288,7 @@ int main(int argc, char *argv[], char **envp){
     file_mess = msgget(cle,IPC_CREAT | IPC_EXCL | 0660);
     if (file_mess==-1){
       couleur(ROUGE);
-      fprintf(stdout,"Pb création file de message\n");
+      fprintf(stderr,"Pb création file de message\n");
       couleur(REINIT);
       exit(-1);
     }
@@ -259,13 +298,11 @@ int main(int argc, char *argv[], char **envp){
 
     /* TEST DES AFFICHAGES */
 
-    for(t1=0;t1<nb_themes;t1++){
-      for(t2=0;t2<nb_article;t2++){
-	couleur(VERT);
+    /* for(t1=0;t1<nb_themes;t1++){
+      for(t2=0;t2<nb_article*4;t2++){
 	printf("%c",stock_tab_SMP[t1][t2]);
-	couleur(REINIT);
       }
-    }
+      }*/
 
     /* Fin test */
 	
@@ -292,7 +329,6 @@ int main(int argc, char *argv[], char **envp){
       sprintf(tmp1, "%d", nb_themes);
       argv_stru[2] = strdup(tmp1);
       pid = fork();
-      printf("PID : %d\n",pid);
       if (pid==-1){
 	break;
       }
@@ -305,53 +341,58 @@ int main(int argc, char *argv[], char **envp){
 
 	
     /* Création des journalistes */
+
+
+
+
+    char* argv_stru[20]={"./Journaliste","0","0","0","0","0"};
+    char tmp[200];
+    int theme_alea;
+    char txt[5];
+    int numero_article;
+    
     for(;;){
       if(nb_journalistes>9999 && nb_journalistes<10005){
-	pid = fork();
-	if (pid==-1){
-	  // clean
-	  break;
-	}
-	if (pid==0){
-
+	
 	  srand(getpid());
 	      
 	  crea_alea = rand()%10+1;
 	  couleur(BLEU);
 	  printf("Nombre aléatoire : %d\n", crea_alea);
 	  couleur(REINIT);
-	  char* argv_stru[20];
-	  char* tmp={"0"};
-	  int theme_alea = rand()%nb_themes;
-	  char txt[4];
-	  int numero_article = rand()%100; // On fixe a 100 le nb max d'articles
+	  theme_alea = rand()%nb_themes;
+	  numero_article = rand()%100; // On fixe a 100 le nb max d'articles
 	  if(crea_alea == 1){
 	    /*Création d'un journaliste avec une demande d'effacement d'archive */
-
-	    argv_stru[0] = strdup("./journaliste");
-		
+	    fprintf(stderr,"%s",argv_stru[0]);
+	    
 	    sprintf(tmp, "%d", nb_journalistes);
 	    argv_stru[1] = strdup(tmp);
+	    printf("%s",argv_stru[1]);
 
 	    sprintf(tmp, "%d", nb_archivistes);
 	    argv_stru[2] = strdup(tmp);
+	    printf("%s",argv_stru[2]);
 
 	    sprintf(tmp, "E");
 	    argv_stru[3] = strdup(tmp);
+	    printf("%s",argv_stru[3]);
 
 	    sprintf(tmp, "%d", theme_alea);
 	    argv_stru[4] = strdup(tmp);
+	    printf("%s",argv_stru[4]);
 
 	    sprintf(tmp, "%d", numero_article);
 	    argv_stru[5] = strdup(tmp);
+	    printf("%s",argv_stru[5]);
 	  }
 	  else if(crea_alea < 4 && crea_alea > 1){
 	    /* Création d'un journaliste avec une demande de publication d'archive */
-
-	    argv_stru[0] = strdup("./journaliste");		
+	    printf("%s",argv_stru[0]);
 		
 	    sprintf(tmp, "%d", nb_journalistes);
 	    argv_stru[1] = strdup(tmp);
+	    printf("%s",argv_stru[1]);
 
 	    sprintf(tmp, "%d", nb_archivistes);
 	    argv_stru[2] = strdup(tmp);
@@ -366,38 +407,45 @@ int main(int argc, char *argv[], char **envp){
 	    txt[1]=rand()%(122-97)+97;
 	    txt[2]=rand()%(122-97)+97;
 	    txt[3]=rand()%(122-97)+97;
+	    txt[4]='\0';
 	    sprintf(tmp, "%s", txt);
 	    argv_stru[4] = strdup(tmp);
 	  }
 	  else{
 	    /* Création d'un journaliste avec une demande de consultation d'archive */
-	    argv_stru[0] = strdup("./journaliste");
-
 	    sprintf(tmp, "%d", nb_journalistes);
-	    argv_stru[1] = strdup(tmp);
+	    strcpy(argv_stru[1],tmp);
 
 	    sprintf(tmp, "%d", nb_archivistes);
 	    argv_stru[2] = strdup(tmp);
+	    printf("%s",argv_stru[1]);
 
 	    sprintf(tmp, "C");
 	    argv_stru[3] = strdup(tmp);
 
 	    sprintf(tmp, "%d", stock_SMP[theme_alea]);
 	    argv_stru[4] = strdup(tmp);
-
+	    
 	    sprintf(tmp, "%d", numero_article);
 	    argv_stru[5] = strdup(tmp);
 	  }
-	  execve("./journalistes", argv_stru, envp);
+	}
+      }
+      printf("Test : %s %s %s %s %s %s", argv_stru[0],argv_stru[1],argv_stru[2],argv_stru[3],argv_stru[4],argv_stru[5]);
+      pid = fork();
+	if (pid==-1){
+	  // clean
 	  exit(-1);
 	}
-	nb_journalistes++;
-      }
-    }
+	if (pid==0){
 
+      execve("./Journalistes", argv_stru, envp);
+      exit(-1);  
+      nb_journalistes++;
+
+    }
     /* En principe jamais atteint, mais au cas ou je nettoie avec handler*/
     handler(0);
-    
     exit(0);
   }
 }
