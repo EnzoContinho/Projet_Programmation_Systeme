@@ -17,7 +17,9 @@ int nb_themes; /* nb_themes, necessairement global pour pouvoir la supprimer a l
 void handler(int j){
   key_t cle;
   int tmp;
+  couleur(ROUGE);
   printf("Effacement des IPC... \n");
+  couleur(REINIT);
   /* Nettoyage des SMP */
   for(int i=0;i<nb_themes;i++){
        
@@ -35,7 +37,7 @@ void handler(int j){
   cle = ftok(FICHIER_CLE,LETTRE_CODE);
   if (cle==-1){
     couleur(ROUGE);
-    perror("Pb creation cle");
+    printf("Pb creation cle");
     couleur(REINIT);
     exit(-1);
   }
@@ -151,7 +153,7 @@ int main(int argc, char *argv[], char **envp){
       cle = ftok(FICHIER_CLE,LETTRE_CODE+i);
       if (cle==-1){
 	couleur(ROUGE);
-	perror("Problème création clé");
+	printf("Problème création clé");
 	couleur(REINIT);
 	//supprimer les précédents
 	for(j=0;j<i;j++){
@@ -219,7 +221,7 @@ int main(int argc, char *argv[], char **envp){
     resultat = semctl(stock_SEM,1,SETALL,test);
     if (resultat==-1){
       couleur(ROUGE);
-      perror("Pb initialisation sémaphore");
+      fprintf(stdout,"Pb initialisation sémaphore");
       couleur(REINIT);
       /* On detruit les IPC déjà créées : */
       semctl(stock_SEM,1,IPC_RMID,NULL);
@@ -239,7 +241,7 @@ int main(int argc, char *argv[], char **envp){
     cle = ftok(FICHIER_CLE,LETTRE_CODE);
     if (cle==-1){
       couleur(ROUGE);
-      perror("Pb creation cle");
+      fprintf(stdout,"Pb creation cle");
       couleur(REINIT);
       exit(-1);
     }
@@ -247,7 +249,7 @@ int main(int argc, char *argv[], char **envp){
     file_mess = msgget(cle,IPC_CREAT | IPC_EXCL | 0660);
     if (file_mess==-1){
       couleur(ROUGE);
-      fprintf(stderr,"Pb création file de message\n");
+      fprintf(stdout,"Pb création file de message\n");
       couleur(REINIT);
       exit(-1);
     }
@@ -259,7 +261,9 @@ int main(int argc, char *argv[], char **envp){
 
     for(t1=0;t1<nb_themes;t1++){
       for(t2=0;t2<nb_article;t2++){
+	couleur(VERT);
 	printf("%c",stock_tab_SMP[t1][t2]);
+	couleur(REINIT);
       }
     }
 
