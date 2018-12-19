@@ -187,7 +187,7 @@ int main(int argc, char *argv[], char **envp){
       cle = ftok(FICHIER_CLE,LETTRE_CODE+i);
       if (cle==-1){
         couleur(ROUGE);
-        pfprintf(stdout,"Problème création clé");
+        fprintf(stdout,"Problème création clé");
         couleur(REINIT);
         //supprimer les précédents
         for(j=0;j<i;j++){
@@ -361,7 +361,7 @@ int main(int argc, char *argv[], char **envp){
         break;
       }
       if (pid==0){
-        couleur(VERT)
+        couleur(VERT);
         fprintf(stdout,"Archiviste : %s %s %s\n", argv_stru[0],argv_stru[1],argv_stru[2]);
         couleur(REINIT);
         execve("./Archivistes", args, envp);
