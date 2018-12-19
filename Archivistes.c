@@ -133,7 +133,7 @@ int main (int argc, char *argv[]){
     if (tab_theme==NULL)
     {
       couleur(ROUGE);
-      printf("(%d) Pb attachement SMP\n",num_archiv);
+      fprintf(stdout,"(%d) Pb attachement SMP\n",num_archiv);
       couleur(REINIT);
       exit(-1);
     }
@@ -154,49 +154,47 @@ int main (int argc, char *argv[]){
     }
 
     /* traitement de la requete :                      */
-    /*  couleur(BLEU);*/
-    /*CONSULTATION*/
-    fprintf(stderr, "%d\n", requete.mode);
-
     switch (requete.mode)
     {
       /*CONSULTATION*/
       case 0 :
+      couleur(BLEU);
       fprintf(stdout,"(Archiviste) Requete reçue de %d\n\tConsultation du thème numéro : %d de l'article numero : %d \n",
       requete.journaliste,
       requete.theme,
       requete.num_article);
+      couleur(REINIT);
       /*Recherche*/
       for(i=0;i<4;i++)
       {
         article[i]=tab_theme[requete.theme].articles[(4*requete.num_article)+i];
-        fprintf(stderr, "%c\n",article[i]);
       }
       article[4]='\0';
 
-      fprintf(stderr, "TEST !!\n");
 
       /*Type de reponse judicieusement choisi*/
       reponse.mode=0;
       reponse.archiviste=num_archiv;
-      //sprintf(reponse.resu,"La consultation a bien été faite ! L'article n°%d du thème n°%d est : %s",requete.num_article,requete.theme,article);
-      fprintf(stderr, "TEST2 %s !!\n", article);
+      /*reponse.resu="La consultation a bien été faite !";*/
+      sprintf(reponse.resu,"La consultation a bien été faite ! L'article n°%d du thème n°%d est : %s",requete.num_article,requete.theme,article);
+      
       break;
       /*PUBLICATION*/
       /*AJOUT*/
       case 1:
+	  couleur(BLEU);
       fprintf(stdout,"(Archiviste) Requete recue de %d\n\tAjout dans le thème numéro : %d et du texte : %s \n",
       requete.journaliste,
       requete.theme,
       requete.texte);
-
+      couleur(REINIT);
+      
       /*A MODIFIER*/
       /*
       semop(semap,&P,1);
       */
 
       /*Ajout*/
-      fprintf(stderr, "TESTE AJOUT\n");
       i=0;
       while(i<400)
       {
@@ -228,11 +226,12 @@ int main (int argc, char *argv[]){
       /*PUBLICATION*/
       /*SUPRESSION*/
       case 2:
+	  couleur(BLEU);
       fprintf(stdout,"(Archiviste) Requete recue de %d\n\tSuppression dans le thème numéro : %d et précisement de l'article : %d\n",
       requete.journaliste,
       requete.theme,
       requete.num_article);
-
+      couleur(REINIT);
       /*
       semop(semap,&P,1);
       */
@@ -256,11 +255,12 @@ int main (int argc, char *argv[]){
       break;
     }
 
-    /*  couleur(REINIT); */
     couleur(BLEU);
     fprintf(stdout, "Je fais le travail demandé ...\n");
+    couleur(REINIT);
     /* Attente aleatoire */
     sleep(rand()%3);
+    couleur(BLEU);
     fprintf(stdout,"Travail effectué !\n");
     couleur(REINIT);
     /* envoi de la reponse :                           */
