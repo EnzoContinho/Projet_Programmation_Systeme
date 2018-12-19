@@ -47,7 +47,7 @@ typedef struct
     int mode;        /* si mode=0 => consultation
                         si mode=1 => ajout
                         sinon mode=2 => suppression*/
-    char* resu;
+    char resu[100];
 }
 reponse_t;
 
