@@ -10,6 +10,8 @@
 
 int nb_themes; /* nb_themes, necessairement global pour pouvoir la supprimer a la terminaison */
 
+int fils[NB_ARCHIVISTES_MAX];/* tableau des pid des archivistes pour suppression*/
+int cmpt; /* compteur du tableau des fils */
 /*
 * Fonction appelée à la fin du programme ou lors d'une interruption du programme  pour nettoyer les IPC
 *
@@ -57,6 +59,21 @@ void handler(int j){
   get = shmget(cle,0,0);
   shmctl(get,IPC_RMID,NULL);
 
+  /* on tue les fils */
+  for (int i = 0; i < cmpt; i++) {
+    kill(fils[i],SIGUSR1);
+  }
+
+  /* on attends la mort des fils */
+  int encore_fils=1;
+  int cause_fin=0;
+  int res_wait=0;
+  while(encore_fils)
+  {
+    res_wait=waitpid(-1,&cause_fin,WUNTRACED|WCONTINUED);
+    if((res_wait==-1) && (errno==ECHILD))
+    encore_fils=0;
+  }
   printf("BYE !\n");
   exit(-1);
 }
@@ -97,11 +114,9 @@ int main(int argc, char *argv[], char **envp){
   int i;
   int j;
   int y;
-  int t1;
-  int t2;
   int pid;
   int nb_archivistes;
-  int nb_article = 100; // On fixe a 100 le nb max d'articles
+  int nb_article = NB_ARTICLE; // On fixe a 100 le nb max d'articles
   int crea_alea;
   /* init pour fabrication de la clé */
   struct stat st;
@@ -119,7 +134,11 @@ int main(int argc, char *argv[], char **envp){
   char argv_stru[20][40];
   char tmp1[50];
   int SMP_FILE;
-
+  char tmp[200];
+  int theme_alea;
+  char txt[5];
+  int numero_article;
+  cmpt = 0;
   /* TEST si il manque des arguments, ajouts éventuels*/
   switch (argc) {
     case 1:
@@ -348,15 +367,14 @@ int main(int argc, char *argv[], char **envp){
         exit(-1);
       }
       sleep(1);
+      fils[cmpt] = pid;
+      cmpt++;
     }
 
 
     /* Création des journalistes */
     strcpy(argv_stru[0],"./Journalistes");
-    char tmp[200];
-    int theme_alea;
-    char txt[5];
-    int numero_article;
+
     srand(getpid());
 
     for(;;){
@@ -367,7 +385,7 @@ int main(int argc, char *argv[], char **envp){
         // printf("Nombre aléatoire : %d\n", crea_alea);
         // couleur(REINIT);
         theme_alea = rand()%nb_themes;
-        numero_article = rand()%100; // On fixe a 100 le nb max d'articles
+        numero_article = rand()%nb_article; // On fixe a 100 le nb max d'articles
         if(crea_alea == 1){
           /*Création d'un journaliste avec une demande d'effacement d'archive */
 
