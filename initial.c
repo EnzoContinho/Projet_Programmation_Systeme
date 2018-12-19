@@ -19,14 +19,16 @@ int cmpt; /* compteur du tableau des fils */
 void handler(int j){
   key_t cle;
   int tmp;
-  printf("Effacement des IPC... \n");
+  couleur(ROUGE);
+  fprintf(stdout,"Effacement des IPC... \n");
+  couleur(REINIT);
   /* Nettoyage des SMP */
   for(int i=0;i<nb_themes;i++){
 
     cle = ftok(FICHIER_CLE,LETTRE_CODE+i);
     if (cle==-1){
       couleur(ROUGE);
-      printf("Pb création clé\n");
+      fprintf(stdout,"Pb création clé\n");
       couleur(REINIT);
       exit(-1);
     }
@@ -37,7 +39,7 @@ void handler(int j){
   cle = ftok(FICHIER_CLE,LETTRE_CODE);
   if (cle==-1){
     couleur(ROUGE);
-    perror("Pb creation cle");
+    fprintf(stdout,"Pb creation cle");
     couleur(REINIT);
     exit(-1);
   }
@@ -51,7 +53,7 @@ void handler(int j){
   cle = ftok(FICHIER_CLE,LETTRE_CODE-1);
   if (cle==-1){
     couleur(ROUGE);
-    perror("Problème création clé");
+    fprintf(stdout,"Problème création clé");
     couleur(REINIT);
     exit(-1);
   }
@@ -160,7 +162,7 @@ int main(int argc, char *argv[], char **envp){
   /* TEST si nb_archivistes et nb_themes sont bien compris entre 2 et 100 */
   if(nb_archivistes < 2 || nb_archivistes > 100 || nb_themes < 2 || nb_themes > 100){
     couleur(ROUGE);
-    printf("Le nombre d'archivistes et/ou de themes doit être compris entre 2 et 100...BYE !\n");
+    fprintf(stdout,"Le nombre d'archivistes et/ou de themes doit être compris entre 2 et 100...BYE !\n");
     couleur(REINIT);
     exit(-1);
   }
@@ -185,7 +187,7 @@ int main(int argc, char *argv[], char **envp){
       cle = ftok(FICHIER_CLE,LETTRE_CODE+i);
       if (cle==-1){
         couleur(ROUGE);
-        perror("Problème création clé");
+        pfprintf(stdout,"Problème création clé");
         couleur(REINIT);
         //supprimer les précédents
         for(j=0;j<i;j++){
@@ -200,7 +202,7 @@ int main(int argc, char *argv[], char **envp){
 
       if (stock_SMP[i]==-1){
         couleur(ROUGE);
-        printf("Pb creation SMP ou il existe déjà\n");
+        fprintf(stdout,"Pb creation SMP ou il existe déjà\n");
         couleur(REINIT);
         //supprimer les précédents
         for(j=0;j<i;j++){
@@ -213,7 +215,7 @@ int main(int argc, char *argv[], char **envp){
       stock_tab_SMP[i] = shmat(stock_SMP[i],NULL,0);
       if (stock_tab_SMP[i]==(char *)-1){
         couleur(ROUGE);
-        printf("Pb attachement SMP\n");
+        fprintf(stdout,"Pb attachement SMP\n");
         couleur(REINIT);
         exit(-1);
       }
@@ -235,7 +237,7 @@ int main(int argc, char *argv[], char **envp){
     cle = ftok(FICHIER_CLE,LETTRE_CODE-1);
     if (cle==-1){
       couleur(ROUGE);
-      perror("Problème création clé");
+      fprintf(stdout,"Problème création clé");
       couleur(REINIT);
       exit(-1);
     }
@@ -246,7 +248,7 @@ int main(int argc, char *argv[], char **envp){
 
     if (SMP_FILE==-1){
       couleur(ROUGE);
-      printf("Pb creation SMP ou il existe déjà\n");
+      fprintf(stdout,"Pb creation SMP ou il existe déjà\n");
       couleur(REINIT);
       handler(0);
       exit(-1);
@@ -257,7 +259,7 @@ int main(int argc, char *argv[], char **envp){
     attache = shmat(SMP_FILE,NULL,0);
     if (attache==NULL){
       couleur(ROUGE);
-      printf("Pb attachement SMP\n");
+      fprintf(stdout,"Pb attachement SMP\n");
       couleur(REINIT);
       exit(-1);
     }
@@ -275,7 +277,7 @@ int main(int argc, char *argv[], char **envp){
     stock_SEM = semget(cle,sizeof(char),IPC_CREAT | IPC_EXCL | 0660);
     if (stock_SEM==-1){
       couleur(ROUGE);
-      printf("Prob création semaphore ou il existe deja\n");
+      fprintf(stdout,"Prob création semaphore ou il existe deja\n");
       couleur(REINIT);
       /* Il faut detruire le SMP puisqu'on l'a cree : */
       for (i = 0; i < nb_themes; i++) {
@@ -293,7 +295,7 @@ int main(int argc, char *argv[], char **envp){
     resultat = semctl(stock_SEM,1,SETALL,test);
     if (resultat==-1){
       couleur(ROUGE);
-      perror("Pb initialisation sémaphore");
+      fprintf(stdout,"Pb initialisation sémaphore");
       couleur(REINIT);
       /* On detruit les IPC déjà créées : */
       semctl(stock_SEM,1,IPC_RMID,NULL);
@@ -305,15 +307,13 @@ int main(int argc, char *argv[], char **envp){
 
     /* FIN création ensemble de sémaphores */
 
-
-
     /* Création FM */
 
     /* nouvelle clé pour la FM */
     cle = ftok(FICHIER_CLE,LETTRE_CODE);
     if (cle==-1){
       couleur(ROUGE);
-      perror("Pb creation cle");
+      fprintf(stdout,"Pb creation cle");
       couleur(REINIT);
       exit(-1);
     }
@@ -321,7 +321,7 @@ int main(int argc, char *argv[], char **envp){
     file_mess = msgget(cle,IPC_CREAT | IPC_EXCL | 0660);
     if (file_mess==-1){
       couleur(ROUGE);
-      fprintf(stderr,"Pb création file de message\n");
+      fprintf(stdout,"Pb création file de message\n");
       couleur(REINIT);
       exit(-1);
     }
@@ -361,7 +361,9 @@ int main(int argc, char *argv[], char **envp){
         break;
       }
       if (pid==0){
-        fprintf(stderr,"Archiviste : %s %s %s\n", argv_stru[0],argv_stru[1],argv_stru[2]);
+        couleur(VERT)
+        fprintf(stdout,"Archiviste : %s %s %s\n", argv_stru[0],argv_stru[1],argv_stru[2]);
+        couleur(REINIT);
         execve("./Archivistes", args, envp);
         // supprimer tout
         exit(-1);
@@ -381,9 +383,6 @@ int main(int argc, char *argv[], char **envp){
       if(nb_journalistes>9999 && nb_journalistes<20001){
 
         crea_alea = rand()%10+1;
-        // couleur(BLEU);
-        // printf("Nombre aléatoire : %d\n", crea_alea);
-        // couleur(REINIT);
         theme_alea = rand()%nb_themes;
         numero_article = rand()%nb_article; // On fixe a 100 le nb max d'articles
         if(crea_alea == 1){
@@ -441,19 +440,17 @@ int main(int argc, char *argv[], char **envp){
 
           sprintf(tmp, "%d", theme_alea);
           strcpy(argv_stru[4],tmp);
-          // fprintf(stderr,"%s\n",argv_stru[4]);
 
           sprintf(tmp, "%d", numero_article);
           strcpy(argv_stru[5],tmp);
-          // fprintf(stderr,"%s\n",argv_stru[5]);
         }
       }
       else{
-        printf("Fin de la boucle hihihi\n");
         break;
       }
-
-      fprintf(stderr,"Journaliste : %s %s %s %s %s %s\n", argv_stru[0],argv_stru[1],argv_stru[2],argv_stru[3],argv_stru[4],argv_stru[5]);
+      couleur(VERT);
+      fprintf(stdout,"Journaliste : %s %s %s %s %s %s\n", argv_stru[0],argv_stru[1],argv_stru[2],argv_stru[3],argv_stru[4],argv_stru[5]);
+      couleur(REINIT);
       nb_journalistes++;
       pid = fork();
       if (pid==-1){
