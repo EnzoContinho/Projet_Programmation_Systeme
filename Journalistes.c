@@ -16,7 +16,7 @@
 
 void usage(char *s){
   couleur(ROUGE);
-  fprintf(stdout,"Usage : %s id_journaliste nb_archivistes action option_action1 option_action2\n\tid_journaliste : entier compris entre [10 000 et 20 000]\n\tnb_archivistes : entier nb_archivistes du processus initial\n\taction : char : -C : Consultation => option_action1 : entier theme concerne & option_action2 : entier numero de l'article\n\t                -P : Publication => option_action1 : entier theme concerne & option_action2 : char* texte de l'article\n\t                -E : Effacement => option_action1 : entier theme concerne & option_action2 : entier numero de l'article\n",s);
+  fprintf(stdout,"Usage : %s id_journaliste nb_archivistes action option_action1 option_action2\n\tid_journaliste : entier compris entre [10 000 et 20 000]\n\tnb_archivistes : entier nb_archivistes du processus initial\n\taction : char : C : Consultation => option_action1 : entier theme concerne & option_action2 : entier numero de l'article\n\t                P : Publication => option_action1 : entier theme concerne & option_action2 : char* texte de l'article\n\t                E : Effacement => option_action1 : entier theme concerne & option_action2 : entier numero de l'article\n",s);
   couleur(REINIT);
   exit(-1);
 }
@@ -69,11 +69,11 @@ int main (int argc, char *argv[]){
     usage(argv[0]);
     exit(-1);
   }
-  // if(action!='c' || action!='C'|| action!='p' || action!='P' || action!='e' || action!='E')
-  // {
-  //     usage(argv[0]);
-  //     exit(-1);
-  // }
+  if(!(action=='c' || action=='C'|| action=='p' || action=='P' || action=='e' || action=='E'))
+  {
+      usage(argv[0]);
+      exit(-1);
+  }
 
   switch(action)
   {
@@ -178,12 +178,11 @@ int main (int argc, char *argv[]){
   couleur(BLEU);
   /*Affichage de la requete*/
   fprintf(stdout,"Le journaliste %d envoie comme requete : %s de thème numéro  %d à l'article numéro %d\n", id_journaliste,type_reponse,theme, num_article);
+  couleur(REINIT);
+  couleur(BLEU); 
   /*Affichage de la reponse*/
   fprintf(stdout, "\t\tLe journaliste %d recoit comme réponse : %s\n", id_journaliste, reponse.resu);
   couleur(REINIT);
-
-
-
 
   /* pour gcc */
   exit(0);
